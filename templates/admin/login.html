@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Admin sign in — ClinicPulse{% endblock %}
+
+{% block content %}
+<section class="page-head">
+  <h1>Admin sign in</h1>
+  <p class="muted">Staff only.</p>
+</section>
+
+<form method="post" class="form-card narrow">
+  <label>
+    <span class="label">Username</span>
+    <input type="text" name="username" autocomplete="username" required>
+  </label>
+  <label>
+    <span class="label">Password</span>
+    <input type="password" name="password" autocomplete="current-password" required>
+  </label>
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">Sign in</button>
+  </div>
+</form>
+{% endblock %}
