@@ -1,0 +1,11 @@
+name,village,town,district,province,address,phone,latitude,longitude,operating_hours,services,status,queue_status,medication_status
+Jane Furse Clinic,Jane Furse,Jane Furse,Sekhukhune,Limpopo,"Sample address, Jane Furse",0130000001,-24.7900,29.8800,"Mon-Fri 07:30-16:30","Chronic medication; Antenatal care; HIV/TB services; Immunisation",Open,Moderate,Available
+Burgersfort Clinic,Burgersfort,Burgersfort,Sekhukhune,Limpopo,"Sample address, Burgersfort",0130000002,-24.6900,30.1500,"Mon-Fri 07:30-16:30","Chronic medication; Immunisation; Family planning",Open,Short,Available
+Marble Hall Clinic,Marble Hall,Marble Hall,Sekhukhune,Limpopo,"Sample address, Marble Hall",0130000003,-24.9700,29.2900,"Mon-Fri 07:00-16:00","Chronic medication; Antenatal care; HIV/TB services",Open,Long,Limited
+Groblersdal Clinic,Groblersdal,Groblersdal,Sekhukhune,Limpopo,"Sample address, Groblersdal",0130000004,-25.1700,29.3900,"Mon-Fri 07:30-16:30; Sat 08:00-12:00","Chronic medication; Immunisation; Family planning; HIV/TB services",Open,Moderate,Available
+Apel Clinic,Apel,Apel Cross,Sekhukhune,Limpopo,"Sample address, Apel",0130000005,-24.5100,29.9500,"Mon-Fri 07:30-16:30","Chronic medication; Antenatal care; Immunisation",Limited,Long,Limited
+Nebo Clinic,Nebo,Nebo,Sekhukhune,Limpopo,"Sample address, Nebo",0130000006,-24.9000,29.6700,"Mon-Fri 07:30-16:30","Chronic medication; HIV/TB services; Family planning",Open,Short,Available
+Mohlaletse Clinic,Mohlaletse,Mohlaletse,Sekhukhune,Limpopo,"Sample address, Mohlaletse",0130000007,-24.4600,30.0200,"Mon-Fri 07:30-16:30","Antenatal care; Immunisation; HIV/TB services",Closed,Long,Unavailable
+Mapodile Clinic,Mapodile,Mapodile,Sekhukhune,Limpopo,"Sample address, Mapodile",0130000008,-24.6500,29.9100,"Mon-Fri 07:30-16:30","Chronic medication; Antenatal care; Family planning",Open,Moderate,Available
+Steelpoort Clinic,Steelpoort,Steelpoort,Sekhukhune,Limpopo,"Sample address, Steelpoort",0130000009,-24.7400,30.2000,"Mon-Fri 07:30-16:30","Chronic medication; Immunisation; HIV/TB services",Open,Short,Available
+Ohrigstad Clinic,Ohrigstad,Ohrigstad,Sekhukhune,Limpopo,"Sample address, Ohrigstad",0130000010,-24.7400,30.5900,"Mon-Fri 07:30-16:30","Chronic medication; Antenatal care; Immunisation; Family planning",Limited,Moderate,Limited
