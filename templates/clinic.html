@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% block title %}{{ clinic.name }} — ClinicPulse{% endblock %}
+
+{% block head_extra %}
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+{% endblock %}
+
+{% block content %}
+<nav class="crumbs" aria-label="Breadcrumb">
+  <a href="{{ url_for('index') }}">Home</a> &rsaquo;
+  <a href="{{ url_for('clinics_list') }}">Clinics</a> &rsaquo;
+  <span>{{ clinic.name }}</span>
+</nav>
+
+<article class="clinic-detail">
+  <header class="clinic-head">
+    <h1>{{ clinic.name }}</h1>
+    <p class="muted">{{ clinic.village }}{% if clinic.town and clinic.town != clinic.village %}, {{ clinic.town }}{% endif %} · {{ clinic.district }}, {{ clinic.province }}</p>
+
+    <ul class="status-list" aria-label="Current status">
+      <li><span class="pill large {{ clinic.status|status_class }}">{{ clinic.status or 'Unknown' }}</span></li>
+      <li><span class="pill large {{ clinic.queue_status|status_class }}">Queue: {{ clinic.queue_status or '—' }}</span></li>
+      <li><span class="pill large {{ clinic.medication_status|status_class }}">Meds: {{ clinic.medication_status or '—' }}</span></li>
+    </ul>
+    {% if clinic.last_updated %}
+      <p class="muted small">Last updated: {{ clinic.last_updated }} UTC</p>
+    {% endif %}
+  </header>
+
+  <div class="detail-grid">
+    <section class="detail-info">
+      <h2>Information</h2>
+      <dl>
+        <dt>Address</dt><dd>{{ clinic.address or '—' }}</dd>
+        <dt>Phone</dt>
+        <dd>{% if clinic.phone %}<a href="tel:{{ clinic.phone }}">{{ clinic.phone }}</a>{% else %}—{% endif %}</dd>
+        <dt>Operating hours</dt><dd>{{ clinic.operating_hours or '—' }}</dd>
+        <dt>Services</dt>
+        <dd>
+          {% if clinic.services_list %}
+            <ul class="chips">
+              {% for s in clinic.services_list %}<li class="chip">{{ s }}</li>{% endfor %}
+            </ul>
+          {% else %}—{% endif %}
+        </dd>
+      </dl>
+
+      <div class="action-row">
+        <a class="btn btn-primary" href="{{ clinic.directions_url }}" target="_blank" rel="noopener">Get directions</a>
+        <a class="btn btn-ghost" href="{{ clinic.whatsapp_url }}" target="_blank" rel="noopener">Share on WhatsApp</a>
+        <a class="btn btn-link" href="{{ url_for('report', clinic_id=clinic.id) }}">Report incorrect information</a>
+      </div>
+    </section>
+
+    <section class="detail-map">
+      <h2>Location</h2>
+      {% if clinic.latitude and clinic.longitude %}
+        <div id="clinic-map" class="map"
+             data-lat="{{ clinic.latitude }}"
+             data-lng="{{ clinic.longitude }}"
+             data-name="{{ clinic.name }}"
+             role="application" aria-label="Clinic location map"></div>
+      {% else %}
+        <p class="muted">No map location available.</p>
+      {% endif %}
+    </section>
+  </div>
+</article>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+  (function () {
+    var el = document.getElementById('clinic-map');
+    if (!el) return;
+    var lat = parseFloat(el.dataset.lat);
+    var lng = parseFloat(el.dataset.lng);
+    if (isNaN(lat) || isNaN(lng)) return;
+    var map = L.map(el).setView([lat, lng], 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+    L.marker([lat, lng]).addTo(map).bindPopup(el.dataset.name).openPopup();
+  })();
+</script>
+{% endblock %}
