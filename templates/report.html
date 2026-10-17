@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}Report an issue — {{ clinic.name }}{% endblock %}
+
+{% block content %}
+<section class="page-head">
+  <h1>Report incorrect information</h1>
+  <p class="muted">Help us keep <strong>{{ clinic.name }}</strong> accurate.</p>
+</section>
+
+<form method="post" class="form-card" novalidate>
+  <label>
+    <span class="label">Your name (optional)</span>
+    <input type="text" name="reporter_name" value="{{ form.reporter_name or '' }}" maxlength="120">
+  </label>
+  <label>
+    <span class="label">Contact (phone or email, optional)</span>
+    <input type="text" name="contact_details" value="{{ form.contact_details or '' }}" maxlength="160">
+  </label>
+  <label>
+    <span class="label">Issue type <span class="req">*</span></span>
+    <select name="issue_type" required>
+      <option value="">Choose…</option>
+      {% set types = ['Hours wrong', 'Services wrong', 'Phone wrong', 'Address/location wrong', 'Clinic closed/unavailable', 'Other'] %}
+      {% for t in types %}
+        <option value="{{ t }}" {% if form.issue_type == t %}selected{% endif %}>{{ t }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>
+    <span class="label">Describe the problem <span class="req">*</span></span>
+    <textarea name="description" rows="5" required maxlength="2000">{{ form.description or '' }}</textarea>
+  </label>
+
+  <div class="form-actions">
+    <button class="btn btn-primary" type="submit">Submit report</button>
+    <a class="btn btn-ghost" href="{{ url_for('clinic_detail', clinic_id=clinic.id) }}">Cancel</a>
+  </div>
+</form>
+{% endblock %}
