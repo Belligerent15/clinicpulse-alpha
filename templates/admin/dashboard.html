@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block title %}Admin dashboard — ClinicPulse{% endblock %}
+
+{% block content %}
+<section class="page-head admin-head">
+  <div>
+    <h1>Admin dashboard</h1>
+    <p class="muted">{{ clinics|length }} clinics · {{ reports_count }} open report(s)</p>
+  </div>
+</section>
+
+<div class="table-wrap">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Clinic</th><th>Status</th><th>Queue</th><th>Meds</th>
+        <th>Published</th><th>Updated</th><th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in clinics %}
+      <tr>
+        <td>
+          <strong>{{ c.name }}</strong><br>
+          <small class="muted">{{ c.village }}{% if c.town and c.town != c.village %}, {{ c.town }}{% endif %}</small>
+        </td>
+        <td><span class="pill {{ c.status|status_class }}">{{ c.status }}</span></td>
+        <td><span class="pill {{ c.queue_status|status_class }}">{{ c.queue_status }}</span></td>
+        <td><span class="pill {{ c.medication_status|status_class }}">{{ c.medication_status }}</span></td>
+        <td>{{ 'Yes' if c.is_published else 'No' }}</td>
+        <td><small>{{ c.last_updated or '—' }}</small></td>
+        <td class="actions">
+          <a class="btn btn-link" href="{{ url_for('admin_edit_clinic', clinic_id=c.id) }}">Edit</a>
+          <form method="post" action="{{ url_for('admin_toggle_clinic', clinic_id=c.id) }}" style="display:inline">
+            <button class="btn btn-link" type="submit">
+              {{ 'Hide' if c.is_published else 'Publish' }}
+            </button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
