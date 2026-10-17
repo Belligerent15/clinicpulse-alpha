@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}ClinicPulse — Know before you go{% endblock %}
+
+{% block head_extra %}
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <h1>Find a clinic near you.</h1>
+  <p class="hero-sub">See hours, services, queue and chronic-medication status before you travel.</p>
+
+  <form class="search-row" action="{{ url_for('clinics_list') }}" method="get" role="search">
+    <label for="q" class="sr-only">Search clinics</label>
+    <input id="q" name="q" type="search" placeholder="Search clinic, village or town…" autocomplete="off">
+    <button type="submit" class="btn btn-primary">Search</button>
+  </form>
+
+  <button id="near-me-btn" class="btn btn-ghost" type="button">
+    <span aria-hidden="true">📍</span> Find clinics near me
+  </button>
+  <p id="near-me-msg" class="muted" aria-live="polite"></p>
+</section>
+
+<section class="map-section" aria-label="Clinics map">
+  <div id="map" class="map" role="application" aria-label="Clinic locations map"></div>
+</section>
+
+<section class="clinic-grid-section">
+  <div class="section-head">
+    <h2>Clinics in Sekhukhune</h2>
+    <a href="{{ url_for('clinics_list') }}" class="see-all">See all &rarr;</a>
+  </div>
+
+  <div class="clinic-grid">
+    {% for c in clinics[:6] %}
+      {% include '_clinic_card.html' %}
+    {% else %}
+      <p class="muted">No clinics yet.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="{{ url_for('static', filename='js/map.js') }}"></script>
+{% endblock %}
