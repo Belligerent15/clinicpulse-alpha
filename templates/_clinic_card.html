@@ -1,0 +1,12 @@
+<article class="clinic-card">
+  <header class="clinic-card-head">
+    <h3><a href="{{ url_for('clinic_detail', clinic_id=c.id) }}">{{ c.name }}</a></h3>
+    <p class="muted">{{ c.village }}{% if c.town and c.town != c.village %}, {{ c.town }}{% endif %}</p>
+  </header>
+  <ul class="status-list" aria-label="Clinic status summary">
+    <li><span class="pill {{ c.status|status_class }}">{{ c.status or 'Unknown' }}</span></li>
+    <li><span class="pill {{ c.queue_status|status_class }}">Queue: {{ c.queue_status or '—' }}</span></li>
+    <li><span class="pill {{ c.medication_status|status_class }}">Meds: {{ c.medication_status or '—' }}</span></li>
+  </ul>
+  <a class="btn btn-link" href="{{ url_for('clinic_detail', clinic_id=c.id) }}">View details &rarr;</a>
+</article>
