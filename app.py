@@ -20,7 +20,6 @@ from flask import (
     Flask,
     abort,
     flash,
-    g,
     redirect,
     render_template,
     request,
@@ -33,16 +32,23 @@ from database import get_connection, init_db, now_iso
 
 load_dotenv()
 
-
 def create_app() -> Flask:
     app = Flask(__name__)
+    
+    # --- Security Configurations ---
     app.config["SECRET_KEY"] = os.environ.get(
         "FLASK_SECRET_KEY", secrets.token_hex(32)
     )
     app.config["ADMIN_USERNAME"] = os.environ.get("ADMIN_USERNAME", "admin")
+    
     # Hash the admin password at startup so we never compare plaintext.
     raw_pw = os.environ.get("ADMIN_PASSWORD", "admin")
     app.config["ADMIN_PASSWORD_HASH"] = generate_password_hash(raw_pw)
+    
+    # Security Headers for Production
+    app.config["SESSION_COOKIE_SECURE"] = True if os.environ.get("RENDER") else False
+    app.config["SESSION_COOKIE_HTTPONLY"] = True
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
     # Ensure DB and tables exist on first run (safe/idempotent).
     init_db()
@@ -163,10 +169,16 @@ def register_routes(app: Flask):
             f"ClinicPulse: {request.url}"
         )
         clinic["whatsapp_url"] = f"https://wa.me/?text={quote_plus(share_text)}"
-        clinic["directions_url"] = (
-            f"https://www.openstreetmap.org/directions?to="
-            f"{clinic['latitude']},{clinic['longitude']}"
-        )
+        
+        # Fallback if no coordinates
+        if clinic['latitude'] and clinic['longitude']:
+            clinic["directions_url"] = (
+                f"https://www.openstreetmap.org/directions?to="
+                f"{clinic['latitude']},{clinic['longitude']}"
+            )
+        else:
+            clinic["directions_url"] = "#"
+            
         return render_template("clinic.html", clinic=clinic)
 
     @app.route("/report/<int:clinic_id>", methods=["GET", "POST"])
@@ -269,6 +281,58 @@ def register_routes(app: Flask):
             clinics=clinics,
             reports_count=reports_count,
         )
+
+    @app.route("/admin/clinics/add", methods=["GET", "POST"])
+    @login_required
+    def admin_add_clinic():
+        if request.method == "POST":
+            name = (request.form.get("name") or "").strip()
+            if not name:
+                flash("Clinic name is required.", "danger")
+                return render_template("admin/add_clinic.html", form=request.form)
+
+            try:
+                lat = float(request.form.get("latitude")) if request.form.get("latitude") else None
+                lng = float(request.form.get("longitude")) if request.form.get("longitude") else None
+            except ValueError:
+                flash("Latitude and longitude must be valid numbers.", "danger")
+                return render_template("admin/add_clinic.html", form=request.form)
+
+            conn = get_connection()
+            try:
+                conn.execute(
+                    """
+                    INSERT INTO clinics (
+                        name, village, town, district, province, address, phone,
+                        latitude, longitude, operating_hours, services,
+                        status, queue_status, medication_status,
+                        last_updated, is_published
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+                    """,
+                    (
+                        name,
+                        (request.form.get("village") or "").strip(),
+                        (request.form.get("town") or "").strip(),
+                        "Sekhukhune", "Limpopo",
+                        (request.form.get("address") or "").strip(),
+                        (request.form.get("phone") or "").strip(),
+                        lat, lng,
+                        (request.form.get("operating_hours") or "").strip(),
+                        (request.form.get("services") or "").strip(),
+                        request.form.get("status") or "Open",
+                        request.form.get("queue_status") or "Short",
+                        request.form.get("medication_status") or "Available",
+                        now_iso()
+                    ),
+                )
+                conn.commit()
+            finally:
+                conn.close()
+
+            flash(f"Clinic '{name}' added successfully.", "success")
+            return redirect(url_for("admin_dashboard"))
+
+        return render_template("admin/add_clinic.html", form={})
 
     @app.route(
         "/admin/clinics/<int:clinic_id>/edit", methods=["GET", "POST"]
@@ -440,4 +504,6 @@ app = create_app()
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=False)
+    # Production fallback for local testing
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)
