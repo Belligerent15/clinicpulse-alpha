@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% block title %}Add Clinic — ClinicPulse admin{% endblock %}
+
+{% block content %}
+<section class="page-head">
+  <h1>Add new clinic</h1>
+  <p class="muted">Add a new verified clinic to the database.</p>
+</section>
+
+<form method="post" class="form-card">
+  <div class="grid-2">
+    <label>
+      <span class="label">Name <span class="req">*</span></span>
+      <input type="text" name="name" value="{{ form.name or '' }}" required>
+    </label>
+    <label>
+      <span class="label">Phone</span>
+      <input type="text" name="phone" value="{{ form.phone or '' }}">
+    </label>
+    <label>
+      <span class="label">Village</span>
+      <input type="text" name="village" value="{{ form.village or '' }}">
+    </label>
+    <label>
+      <span class="label">Town</span>
+      <input type="text" name="town" value="{{ form.town or '' }}">
+    </label>
+    <label class="col-span-2">
+      <span class="label">Address</span>
+      <input type="text" name="address" value="{{ form.address or '' }}">
+    </label>
+    <label>
+      <span class="label">Latitude</span>
+      <input type="text" inputmode="decimal" name="latitude" value="{{ form.latitude or '' }}">
+    </label>
+    <label>
+      <span class="label">Longitude</span>
+      <input type="text" inputmode="decimal" name="longitude" value="{{ form.longitude or '' }}">
+    </label>
+    <label class="col-span-2">
+      <span class="label">Operating hours</span>
+      <input type="text" name="operating_hours" value="{{ form.operating_hours or '' }}">
+    </label>
+    <label class="col-span-2">
+      <span class="label">Services (separate with “ ; ”)</span>
+      <input type="text" name="services" value="{{ form.services or '' }}">
+    </label>
+  </div>
+
+  <fieldset class="status-fieldset">
+    <legend>Live status</legend>
+    <div class="grid-3">
+      <label>
+        <span class="label">Status</span>
+        <select name="status">
+          {% for s in ['Open', 'Closed', 'Limited'] %}
+            <option value="{{ s }}" {% if form.status == s %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        <span class="label">Queue</span>
+        <select name="queue_status">
+          {% for s in ['Short', 'Moderate', 'Long'] %}
+            <option value="{{ s }}" {% if form.queue_status == s %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        <span class="label">Chronic meds</span>
+        <select name="medication_status">
+          {% for s in ['Available', 'Limited', 'Unavailable'] %}
+            <option value="{{ s }}" {% if form.medication_status == s %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </label>
+    </div>
+  </fieldset>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">Add Clinic</button>
+    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-ghost">Cancel</a>
+  </div>
+</form>
+{% endblock %}
