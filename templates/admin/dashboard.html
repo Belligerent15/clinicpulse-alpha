@@ -2,40 +2,66 @@
 {% block title %}Admin dashboard — ClinicPulse{% endblock %}
 
 {% block content %}
-<section class="page-head admin-head">
+<section class="page-head admin-head" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; margin-bottom: 24px;">
   <div>
-    <h1>Admin dashboard</h1>
-    <p class="muted">{{ clinics|length }} clinics · {{ reports_count }} open report(s)</p>
+    <h1 style="margin: 0 0 4px 0;">Admin dashboard</h1>
+    <p class="muted" style="margin: 0;">
+      {{ clinics|length }} clinic(s) · 
+      <span style="color: {% if reports_count > 0 %}var(--danger){% else %}var(--success){% endif %}; font-weight: 600;">
+        {{ reports_count }} open report(s)
+      </span>
+    </p>
+  </div>
+  <div>
+    <a href="{{ url_for('admin_add_clinic') }}" class="btn btn-primary">+ Add New Clinic</a>
   </div>
 </section>
 
-<div class="table-wrap">
+<div class="table-wrap" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
   <table class="table">
     <thead>
       <tr>
-        <th>Clinic</th><th>Status</th><th>Queue</th><th>Meds</th>
-        <th>Published</th><th>Updated</th><th>Actions</th>
+        <th>Clinic</th>
+        <th>Status</th>
+        <th>Queue</th>
+        <th>Meds</th>
+        <th>Published</th>
+        <th>Updated (UTC)</th>
+        <th style="text-align: right;">Actions</th>
       </tr>
     </thead>
     <tbody>
       {% for c in clinics %}
       <tr>
         <td>
-          <strong>{{ c.name }}</strong><br>
+          <strong style="color: var(--navy);">{{ c.name }}</strong><br>
           <small class="muted">{{ c.village }}{% if c.town and c.town != c.village %}, {{ c.town }}{% endif %}</small>
         </td>
         <td><span class="pill {{ c.status|status_class }}">{{ c.status }}</span></td>
         <td><span class="pill {{ c.queue_status|status_class }}">{{ c.queue_status }}</span></td>
         <td><span class="pill {{ c.medication_status|status_class }}">{{ c.medication_status }}</span></td>
-        <td>{{ 'Yes' if c.is_published else 'No' }}</td>
-        <td><small>{{ c.last_updated or '—' }}</small></td>
-        <td class="actions">
-          <a class="btn btn-link" href="{{ url_for('admin_edit_clinic', clinic_id=c.id) }}">Edit</a>
-          <form method="post" action="{{ url_for('admin_toggle_clinic', clinic_id=c.id) }}" style="display:inline">
-            <button class="btn btn-link" type="submit">
+        <td>
+          {% if c.is_published %}
+            <span style="color: var(--success); font-weight: 700; font-size: 0.85rem;">Yes</span>
+          {% else %}
+            <span style="color: var(--danger); font-weight: 700; font-size: 0.85rem;">No</span>
+          {% endif %}
+        </td>
+        <td><small class="muted" style="white-space: nowrap;">{{ c.last_updated or '—' }}</small></td>
+        <td class="actions" style="text-align: right;">
+          <a class="btn btn-link" href="{{ url_for('admin_edit_clinic', clinic_id=c.id) }}" style="padding: 0; margin-right: 12px; font-weight: 600;">Edit</a>
+          
+          <form method="post" action="{{ url_for('admin_toggle_clinic', clinic_id=c.id) }}" style="display:inline;">
+            <button class="btn btn-link" type="submit" style="padding: 0; color: var(--muted); font-weight: 500;">
               {{ 'Hide' if c.is_published else 'Publish' }}
             </button>
           </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="7" style="text-align: center; padding: 32px; color: var(--muted);">
+          No clinics found in the database. Click "+ Add New Clinic" to create one.
         </td>
       </tr>
       {% endfor %}
