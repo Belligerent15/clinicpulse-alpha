@@ -1,12 +1,36 @@
-<article class="clinic-card">
-  <header class="clinic-card-head">
-    <h3><a href="{{ url_for('clinic_detail', clinic_id=c.id) }}">{{ c.name }}</a></h3>
-    <p class="muted">{{ c.village }}{% if c.town and c.town != c.village %}, {{ c.town }}{% endif %}</p>
+<article class="clinic-card" style="background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: all 0.2s ease-in-out; display: flex; flex-direction: column; height: 100%;">
+  
+  <header class="clinic-card-head" style="margin-bottom: 16px;">
+    <h3 style="margin: 0 0 4px 0; font-size: 1.25rem;">
+      <a href="{{ url_for('clinic_detail', clinic_id=c.id) }}" style="color: var(--navy); text-decoration: none; font-weight: 700;">
+        {{ c.name }}
+      </a>
+    </h3>
+    <p class="muted" style="margin: 0; font-size: 0.9rem; display: flex; align-items: center; gap: 4px;">
+      <span style="font-size: 1rem;">📍</span> {{ c.village }}{% if c.town and c.town != c.village %}, {{ c.town }}{% endif %}
+    </p>
   </header>
-  <ul class="status-list" aria-label="Clinic status summary">
-    <li><span class="pill {{ c.status|status_class }}">{{ c.status or 'Unknown' }}</span></li>
-    <li><span class="pill {{ c.queue_status|status_class }}">Queue: {{ c.queue_status or '—' }}</span></li>
-    <li><span class="pill {{ c.medication_status|status_class }}">Meds: {{ c.medication_status or '—' }}</span></li>
+  
+  <ul class="status-list" aria-label="Clinic status summary" style="list-style: none; padding: 0; margin: 0 0 20px 0; display: flex; flex-wrap: wrap; gap: 8px;">
+    <li><span class="pill {{ c.status|status_class }}" style="font-size: 0.8rem; padding: 4px 10px;">{{ c.status or 'Unknown' }}</span></li>
+    <li><span class="pill {{ c.queue_status|status_class }}" style="font-size: 0.8rem; padding: 4px 10px;">Queue: {{ c.queue_status or '—' }}</span></li>
+    <li><span class="pill {{ c.medication_status|status_class }}" style="font-size: 0.8rem; padding: 4px 10px;">Meds: {{ c.medication_status or '—' }}</span></li>
   </ul>
-  <a class="btn btn-link" href="{{ url_for('clinic_detail', clinic_id=c.id) }}">View details &rarr;</a>
+
+  <!-- Live Update Timestamp & CTA -->
+  <div style="margin-top: auto; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 16px;">
+    
+    {% if c.time_ago %}
+    <span style="font-size: 0.8rem; color: var(--muted); display: flex; align-items: center; gap: 6px;">
+      <span style="width: 8px; height: 8px; background: #16A34A; border-radius: 50%; display: inline-block; animation: pulse 2s infinite;"></span>
+      Live: {{ c.time_ago }}
+    </span>
+    {% else %}
+    <span></span>
+    {% endif %}
+
+    <a href="{{ url_for('clinic_detail', clinic_id=c.id) }}" style="color: var(--primary); font-weight: 600; text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; gap: 4px;">
+      Details <span aria-hidden="true">&rarr;</span>
+    </a>
+  </div>
 </article>
