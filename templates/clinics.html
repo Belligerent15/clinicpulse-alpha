@@ -2,47 +2,60 @@
 {% block title %}All clinics — ClinicPulse{% endblock %}
 
 {% block content %}
-<section class="page-head">
-  <h1>Clinics</h1>
-  <p class="muted">Search and filter clinics in Sekhukhune District.</p>
+<section class="page-head" style="margin-bottom: 24px;">
+  <h1 style="margin: 0 0 8px 0; color: var(--navy); font-size: 1.8rem;">Find a Clinic</h1>
+  <p class="muted" style="margin: 0; font-size: 1.05rem;">Search and filter clinics across Sekhukhune District.</p>
 </section>
 
-<form class="filters" method="get" action="{{ url_for('clinics_list') }}">
-  <div class="filter-row">
+<!-- Modern Filter Card -->
+<form class="filters" method="get" action="{{ url_for('clinics_list') }}" style="background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 24px;">
+  <div class="filter-row" style="display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
     <label>
-      <span class="label">Search</span>
-      <input type="search" name="q" value="{{ filters.q }}" placeholder="Name, village or town">
+      <span class="label" style="font-weight: 600; color: var(--navy); margin-bottom: 6px; display: block;">Search by name or village</span>
+      <input type="search" name="q" value="{{ filters.q }}" placeholder="e.g. Jane Furse" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem;">
     </label>
     <label>
-      <span class="label">Status</span>
-      <select name="status">
-        <option value="">Any</option>
+      <span class="label" style="font-weight: 600; color: var(--navy); margin-bottom: 6px; display: block;">Clinic Status</span>
+      <select name="status" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; background: #fff;">
+        <option value="">Any Status</option>
         {% for s in status_options %}
           <option value="{{ s }}" {% if filters.status == s %}selected{% endif %}>{{ s }}</option>
         {% endfor %}
       </select>
     </label>
     <label>
-      <span class="label">Service</span>
-      <select name="service">
-        <option value="">Any</option>
+      <span class="label" style="font-weight: 600; color: var(--navy); margin-bottom: 6px; display: block;">Required Service</span>
+      <select name="service" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; background: #fff;">
+        <option value="">Any Service</option>
         {% for s in service_options %}
           <option value="{{ s }}" {% if filters.service == s %}selected{% endif %}>{{ s }}</option>
         {% endfor %}
       </select>
     </label>
   </div>
-  <div class="filter-actions">
-    <button type="submit" class="btn btn-primary">Apply</button>
-    <a href="{{ url_for('clinics_list') }}" class="btn btn-ghost">Reset</a>
+  
+  <div class="filter-actions" style="margin-top: 20px; display: flex; gap: 12px; align-items: center;">
+    <button type="submit" class="btn btn-primary" style="padding: 10px 24px;">Apply Filters</button>
+    <a href="{{ url_for('clinics_list') }}" class="btn btn-ghost" style="padding: 10px 24px; background: #f8fafc;">Clear All</a>
+    
+    <!-- Results Counter -->
+    <span class="muted" style="margin-left: auto; font-size: 0.9rem; font-weight: 500;">
+      Showing <strong style="color: var(--navy);">{{ clinics|length }}</strong> clinic(s)
+    </span>
   </div>
 </form>
 
-<section class="clinic-grid">
+<section class="clinic-grid" style="display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));">
   {% for c in clinics %}
     {% include '_clinic_card.html' %}
   {% else %}
-    <p class="muted">No clinics matched your filters.</p>
+    <!-- Beautiful Empty State -->
+    <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; background: #fff; border-radius: 12px; border: 1px dashed #cbd5e1;">
+      <div style="font-size: 2.5rem; margin-bottom: 16px;">🔍</div>
+      <h3 style="color: var(--navy); margin: 0 0 8px 0;">No clinics found</h3>
+      <p class="muted" style="margin: 0 0 20px 0;">We couldn't find any clinics matching your search criteria.</p>
+      <a href="{{ url_for('clinics_list') }}" class="btn btn-primary">Clear Filters & Try Again</a>
+    </div>
   {% endfor %}
 </section>
 {% endblock %}
