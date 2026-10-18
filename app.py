@@ -3,28 +3,17 @@ ClinicPulse Alpha — Flask application.
 
 A mobile-first, low-data web app that helps Sekhukhune District residents
 find clinics, see live status, queue, and chronic-medication availability.
-
-Run locally:
-    pip install -r requirements.txt
-    cp .env.example .env   # then edit values
-    python database.py
-    flask --app app run
 """
 import os
 import secrets
+import random
 from functools import wraps
 from urllib.parse import quote_plus
+from datetime import datetime, timezone
 
 from dotenv import load_dotenv
 from flask import (
-    Flask,
-    abort,
-    flash,
-    redirect,
-    render_template,
-    request,
-    session,
-    url_for,
+    Flask, abort, flash, redirect, render_template, request, session, url_for, jsonify
 )
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -35,29 +24,25 @@ load_dotenv()
 def create_app() -> Flask:
     app = Flask(__name__)
     
-    # --- Security Configurations ---
-    app.config["SECRET_KEY"] = os.environ.get(
-        "FLASK_SECRET_KEY", secrets.token_hex(32)
-    )
+    # --- Config ---
+    app.config["SECRET_KEY"] = os.environ.get("FLASK_SECRET_KEY", secrets.token_hex(32))
     app.config["ADMIN_USERNAME"] = os.environ.get("ADMIN_USERNAME", "admin")
     
-    # Hash the admin password at startup so we never compare plaintext.
     raw_pw = os.environ.get("ADMIN_PASSWORD", "admin")
     app.config["ADMIN_PASSWORD_HASH"] = generate_password_hash(raw_pw)
     
-    # Security Headers for Production
+    # Security settings for cookies (enabled on Render production)
     app.config["SESSION_COOKIE_SECURE"] = True if os.environ.get("RENDER") else False
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
-    # Ensure DB and tables exist on first run (safe/idempotent).
+    # Ensure DB is ready
     init_db()
 
     register_routes(app)
     register_filters(app)
     register_error_handlers(app)
     return app
-
 
 # ---------- helpers ---------- #
 
@@ -70,15 +55,29 @@ def login_required(view):
         return view(*args, **kwargs)
     return wrapped
 
-
 def row_to_clinic(row):
-    if row is None:
-        return None
+    if row is None: return None
     clinic = dict(row)
     services = clinic.get("services") or ""
     clinic["services_list"] = [s.strip() for s in services.split(";") if s.strip()]
+    
+    # Calculate time ago for the UI
+    if clinic.get("last_updated"):
+        try:
+            updated_time = datetime.strptime(clinic["last_updated"], "%Y-%m-%d %H:%M:%S")
+            diff = datetime.now(timezone.utc).replace(tzinfo=None) - updated_time
+            minutes = int(diff.total_seconds() / 60)
+            if minutes < 1:
+                clinic["time_ago"] = "Just now"
+            elif minutes < 60:
+                clinic["time_ago"] = f"{minutes} mins ago"
+            elif minutes < 1440:
+                clinic["time_ago"] = f"{int(minutes/60)} hours ago"
+            else:
+                clinic["time_ago"] = f"{int(minutes/1440)} days ago"
+        except Exception:
+            clinic["time_ago"] = clinic["last_updated"]
     return clinic
-
 
 def fetch_all_clinics(filters=None):
     filters = filters or {}
@@ -102,7 +101,6 @@ def fetch_all_clinics(filters=None):
         params.append(f"%{service.lower()}%")
 
     sql += " ORDER BY name ASC"
-
     conn = get_connection()
     try:
         rows = conn.execute(sql, params).fetchall()
@@ -110,17 +108,13 @@ def fetch_all_clinics(filters=None):
         conn.close()
     return [row_to_clinic(r) for r in rows]
 
-
 def fetch_clinic(clinic_id: int):
     conn = get_connection()
     try:
-        row = conn.execute(
-            "SELECT * FROM clinics WHERE id = ?", (clinic_id,)
-        ).fetchone()
+        row = conn.execute("SELECT * FROM clinics WHERE id = ?", (clinic_id,)).fetchone()
     finally:
         conn.close()
     return row_to_clinic(row)
-
 
 # ---------- routes ---------- #
 
@@ -140,11 +134,8 @@ def register_routes(app: Flask):
         }
         clinics = fetch_all_clinics(filters)
         service_options = [
-            "Chronic medication",
-            "Antenatal care",
-            "Immunisation",
-            "HIV/TB services",
-            "Family planning",
+            "Chronic medication", "Antenatal care", "Immunisation", 
+            "HIV/TB services", "Family planning"
         ]
         status_options = ["Open", "Closed", "Limited"]
         return render_template(
@@ -161,31 +152,71 @@ def register_routes(app: Flask):
         if not clinic or not clinic.get("is_published"):
             abort(404)
 
-        # Build share and directions URLs here (safer than in Jinja).
+        # Generate math CAPTCHA for crowd-sourced updates
+        num1 = random.randint(1, 9)
+        num2 = random.randint(1, 9)
+        session['captcha_answer'] = num1 + num2
+
         share_text = (
-            f"{clinic['name']} ({clinic['village']}) — "
-            f"Status: {clinic['status']}, Queue: {clinic['queue_status']}, "
-            f"Medicine: {clinic['medication_status']}. "
-            f"ClinicPulse: {request.url}"
+            f"{clinic['name']} — Status: {clinic['status']}, Queue: {clinic['queue_status']}, "
+            f"Meds: {clinic['medication_status']}. See live updates on ClinicPulse!"
         )
         clinic["whatsapp_url"] = f"https://wa.me/?text={quote_plus(share_text)}"
+        clinic["directions_url"] = (
+            f"https://www.openstreetmap.org/directions?to={clinic['latitude']},{clinic['longitude']}" 
+            if clinic['latitude'] and clinic['longitude'] else "#"
+        )
         
-        # Fallback if no coordinates
-        if clinic['latitude'] and clinic['longitude']:
-            clinic["directions_url"] = (
-                f"https://www.openstreetmap.org/directions?to="
-                f"{clinic['latitude']},{clinic['longitude']}"
-            )
-        else:
-            clinic["directions_url"] = "#"
-            
-        return render_template("clinic.html", clinic=clinic)
+        return render_template("clinic.html", clinic=clinic, num1=num1, num2=num2)
 
+    # --- Public Crowdsource Update Route ---
+    @app.route("/clinics/<int:clinic_id>/update", methods=["POST"])
+    def public_update_clinic(clinic_id):
+        clinic = fetch_clinic(clinic_id)
+        if not clinic: abort(404)
+
+        # 1. Check Captcha
+        user_answer = request.form.get("captcha")
+        correct_answer = session.get('captcha_answer')
+        try:
+            if not user_answer or int(user_answer) != correct_answer:
+                flash("Incorrect security question. Please try again.", "danger")
+                return redirect(url_for("clinic_detail", clinic_id=clinic_id))
+        except ValueError:
+            flash("Invalid security answer.", "danger")
+            return redirect(url_for("clinic_detail", clinic_id=clinic_id))
+
+        # 2. Get new statuses
+        status = request.form.get("status") or "Open"
+        queue = request.form.get("queue_status") or "Short"
+        meds = request.form.get("medication_status") or "Available"
+
+        # 3. Update Database
+        conn = get_connection()
+        try:
+            conn.execute(
+                "UPDATE clinics SET status=?, queue_status=?, medication_status=?, last_updated=? WHERE id=?",
+                (status, queue, meds, now_iso(), clinic_id)
+            )
+            # Log the community update
+            conn.execute(
+                """INSERT INTO status_updates 
+                   (clinic_id, status, queue_status, medication_status, note, updated_by, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (clinic_id, status, queue, meds, "Updated by public user", "Community", now_iso())
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+        flash("Thank you! Live status updated for everyone.", "success")
+        return redirect(url_for("clinic_detail", clinic_id=clinic_id))
+
+    # --- Public Report Route ---
     @app.route("/report/<int:clinic_id>", methods=["GET", "POST"])
     def report(clinic_id):
         clinic = fetch_clinic(clinic_id)
-        if not clinic:
-            abort(404)
+        if not clinic: abort(404)
 
         if request.method == "POST":
             reporter_name = (request.form.get("reporter_name") or "").strip()
@@ -195,34 +226,15 @@ def register_routes(app: Flask):
 
             if not description or not issue_type:
                 flash("Please choose an issue type and describe the problem.", "danger")
-                return render_template(
-                    "report.html",
-                    clinic=clinic,
-                    form={
-                        "reporter_name": reporter_name,
-                        "contact_details": contact,
-                        "issue_type": issue_type,
-                        "description": description,
-                    },
-                )
+                return render_template("report.html", clinic=clinic, form=request.form)
 
             conn = get_connection()
             try:
                 conn.execute(
-                    """
-                    INSERT INTO reports
-                        (clinic_id, reporter_name, contact_details,
-                         issue_type, description, status, created_at)
-                    VALUES (?, ?, ?, ?, ?, 'open', ?)
-                    """,
-                    (
-                        clinic_id,
-                        reporter_name or None,
-                        contact or None,
-                        issue_type,
-                        description,
-                        now_iso(),
-                    ),
+                    """INSERT INTO reports 
+                       (clinic_id, reporter_name, contact_details, issue_type, description, status, created_at)
+                       VALUES (?, ?, ?, ?, ?, 'open', ?)""",
+                    (clinic_id, reporter_name or None, contact or None, issue_type, description, now_iso())
                 )
                 conn.commit()
             finally:
@@ -237,17 +249,14 @@ def register_routes(app: Flask):
     def about():
         return render_template("about.html")
 
-    # ---------- admin ---------- #
-
+    # --- Admin Login/Logout ---
     @app.route("/admin/login", methods=["GET", "POST"])
     def admin_login():
         if request.method == "POST":
             username = (request.form.get("username") or "").strip()
             password = request.form.get("password") or ""
-            if (
-                username == app.config["ADMIN_USERNAME"]
-                and check_password_hash(app.config["ADMIN_PASSWORD_HASH"], password)
-            ):
+            if (username == app.config["ADMIN_USERNAME"] and 
+                check_password_hash(app.config["ADMIN_PASSWORD_HASH"], password)):
                 session["admin_logged_in"] = True
                 session["admin_user"] = username
                 flash("Signed in.", "success")
@@ -262,23 +271,19 @@ def register_routes(app: Flask):
         flash("Signed out.", "success")
         return redirect(url_for("index"))
 
+    # --- Admin Dashboard & Management ---
     @app.get("/admin")
     @login_required
     def admin_dashboard():
         conn = get_connection()
         try:
-            rows = conn.execute(
-                "SELECT * FROM clinics ORDER BY name ASC"
-            ).fetchall()
-            reports_count = conn.execute(
-                "SELECT COUNT(*) AS c FROM reports WHERE status='open'"
-            ).fetchone()["c"]
+            rows = conn.execute("SELECT * FROM clinics ORDER BY name ASC").fetchall()
+            reports_count = conn.execute("SELECT COUNT(*) AS c FROM reports WHERE status='open'").fetchone()["c"]
         finally:
             conn.close()
-        clinics = [row_to_clinic(r) for r in rows]
         return render_template(
             "admin/dashboard.html",
-            clinics=clinics,
+            clinics=[row_to_clinic(r) for r in rows],
             reports_count=reports_count,
         )
 
@@ -334,14 +339,11 @@ def register_routes(app: Flask):
 
         return render_template("admin/add_clinic.html", form={})
 
-    @app.route(
-        "/admin/clinics/<int:clinic_id>/edit", methods=["GET", "POST"]
-    )
+    @app.route("/admin/clinics/<int:clinic_id>/edit", methods=["GET", "POST"])
     @login_required
     def admin_edit_clinic(clinic_id):
         clinic = fetch_clinic(clinic_id)
-        if not clinic:
-            abort(404)
+        if not clinic: abort(404)
 
         if request.method == "POST":
             fields = {
@@ -356,9 +358,7 @@ def register_routes(app: Flask):
                 "services": (request.form.get("services") or "").strip(),
                 "status": (request.form.get("status") or "Open").strip(),
                 "queue_status": (request.form.get("queue_status") or "Short").strip(),
-                "medication_status": (
-                    request.form.get("medication_status") or "Available"
-                ).strip(),
+                "medication_status": (request.form.get("medication_status") or "Available").strip(),
                 "is_published": 1 if request.form.get("is_published") else 0,
                 "note": (request.form.get("note") or "").strip(),
             }
@@ -400,8 +400,7 @@ def register_routes(app: Flask):
                 conn.execute(
                     """
                     INSERT INTO status_updates
-                        (clinic_id, status, queue_status, medication_status,
-                         note, updated_by, created_at)
+                        (clinic_id, status, queue_status, medication_status, note, updated_by, created_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
@@ -423,87 +422,54 @@ def register_routes(app: Flask):
     @login_required
     def admin_toggle_clinic(clinic_id):
         clinic = fetch_clinic(clinic_id)
-        if not clinic:
-            abort(404)
+        if not clinic: abort(404)
         new_val = 0 if clinic.get("is_published") else 1
         conn = get_connection()
         try:
-            conn.execute(
-                "UPDATE clinics SET is_published=?, last_updated=? WHERE id=?",
-                (new_val, now_iso(), clinic_id),
-            )
+            conn.execute("UPDATE clinics SET is_published=?, last_updated=? WHERE id=?", (new_val, now_iso(), clinic_id))
             conn.commit()
         finally:
             conn.close()
-        flash(
-            "Clinic " + ("published" if new_val else "hidden") + ".",
-            "success",
-        )
+        flash("Clinic " + ("published" if new_val else "hidden") + ".", "success")
         return redirect(url_for("admin_dashboard"))
 
-    # ---------- lightweight JSON for map ---------- #
-
+    # --- API for Map ---
     @app.get("/api/clinics.json")
     def api_clinics():
         clinics = fetch_all_clinics()
-        # Only send what the map needs — keep payload small.
-        return {
+        return jsonify({
             "clinics": [
                 {
-                    "id": c["id"],
-                    "name": c["name"],
-                    "village": c["village"],
-                    "town": c["town"],
-                    "latitude": c["latitude"],
-                    "longitude": c["longitude"],
-                    "status": c["status"],
-                    "queue_status": c["queue_status"],
+                    "id": c["id"], "name": c["name"], "village": c["village"],
+                    "town": c["town"], "latitude": c["latitude"], "longitude": c["longitude"],
+                    "status": c["status"], "queue_status": c["queue_status"],
                     "medication_status": c["medication_status"],
                 }
-                for c in clinics
-                if c.get("latitude") and c.get("longitude")
+                for c in clinics if c.get("latitude") and c.get("longitude")
             ]
-        }
-
+        })
 
 # ---------- filters & errors ---------- #
 
 def register_filters(app: Flask):
     @app.template_filter("status_class")
     def status_class(value: str) -> str:
-        if not value:
-            return "status-unknown"
-        v = value.strip().lower()
-        mapping = {
-            "open": "status-ok",
-            "closed": "status-bad",
-            "limited": "status-warn",
-            "limited services": "status-warn",
-            "short": "status-ok",
-            "moderate": "status-warn",
-            "long": "status-bad",
-            "available": "status-ok",
-            "unavailable": "status-bad",
-        }
-        return mapping.get(v, "status-unknown")
-
+        v = str(value).strip().lower() if value else ""
+        if v in ["open", "short", "available"]: return "status-ok"
+        if v in ["limited", "moderate", "limited services"]: return "status-warn"
+        if v in ["closed", "long", "unavailable"]: return "status-bad"
+        return "status-unknown"
 
 def register_error_handlers(app: Flask):
     @app.errorhandler(404)
-    def not_found(_e):
-        return render_template("error.html", code=404,
-                               message="Page not found."), 404
+    def not_found(_e): 
+        return render_template("error.html", code=404, message="Page not found."), 404
 
     @app.errorhandler(500)
-    def server_error(_e):
-        return render_template("error.html", code=500,
-                               message="Something went wrong."), 500
-
+    def server_error(_e): 
+        return render_template("error.html", code=500, message="Something went wrong."), 500
 
 app = create_app()
 
-
 if __name__ == "__main__":
-    # Production fallback for local testing
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=False)
