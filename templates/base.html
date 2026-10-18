@@ -6,42 +6,73 @@
   <meta name="theme-color" content="#0E7C7B">
   <title>{% block title %}ClinicPulse — Know before you go{% endblock %}</title>
   <meta name="description" content="Find clinics in Sekhukhune, Limpopo. See hours, services, queue and medicine status before you travel.">
+  
+  <!-- Google Fonts for Premium Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   {% block head_extra %}{% endblock %}
+  
+  <style>
+    /* Mobile Nav Toggle Logic */
+    .mobile-menu-btn { display: none; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--navy); }
+    @media (max-width: 768px) {
+      .mobile-menu-btn { display: block; }
+      .nav { display: none; flex-direction: column; width: 100%; text-align: center; padding: 16px 0; gap: 16px; }
+      .nav.active { display: flex; }
+      .header-row { flex-wrap: wrap; }
+    }
+  </style>
 </head>
-<body>
+<body style="font-family: 'Inter', sans-serif;">
+
 <a class="skip-link" href="#main">Skip to content</a>
 
-<header class="site-header">
-  <div class="container header-row">
-    <a class="brand" href="{{ url_for('index') }}" aria-label="ClinicPulse home">
-      <span class="brand-mark" aria-hidden="true"></span>
+<header class="site-header" style="background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+  <div class="container header-row" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; min-height: 70px;">
+    
+    <a class="brand" href="{{ url_for('index') }}" aria-label="ClinicPulse home" style="display: flex; align-items: center; gap: 12px; text-decoration: none;">
+      <span class="brand-mark" aria-hidden="true" style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, var(--primary), var(--navy));"></span>
       <span class="brand-text">
-        <strong>ClinicPulse</strong>
-        <small>Know before you go</small>
+        <strong style="font-size: 1.25rem; color: var(--navy); display: block; line-height: 1.1;">ClinicPulse</strong>
+        <small style="color: var(--muted); font-size: 0.8rem; font-weight: 500;">Know before you go</small>
       </span>
     </a>
-    <nav class="nav" aria-label="Primary">
-      <a href="{{ url_for('clinics_list') }}">Clinics</a>
-      <a href="{{ url_for('about') }}">About</a>
+
+    <!-- Mobile Menu Button -->
+    <button class="mobile-menu-btn" onclick="document.querySelector('.nav').classList.toggle('active')">☰</button>
+
+    <nav class="nav" aria-label="Primary" style="display: flex; align-items: center; gap: 24px;">
+      <a href="{{ url_for('clinics_list') }}" style="color: var(--navy); font-weight: 600; text-decoration: none; font-size: 0.95rem;">Find Clinics</a>
+      <a href="{{ url_for('about') }}" style="color: var(--navy); font-weight: 600; text-decoration: none; font-size: 0.95rem;">About</a>
+      
       {% if session.get('admin_logged_in') %}
-        <a href="{{ url_for('admin_dashboard') }}">Admin</a>
-        <form method="post" action="{{ url_for('admin_logout') }}" style="display:inline">
-          <button class="link-btn" type="submit">Sign out</button>
-        </form>
+        <div style="display: flex; align-items: center; gap: 16px; padding-left: 16px; border-left: 1px solid var(--border);">
+          <a href="{{ url_for('admin_dashboard') }}" style="color: var(--primary); font-weight: 600; text-decoration: none; font-size: 0.95rem;">Dashboard</a>
+          <form method="post" action="{{ url_for('admin_logout') }}" style="display:inline; margin: 0;">
+            <button class="link-btn" type="submit" style="background: none; border: none; color: var(--danger); font-weight: 600; cursor: pointer; font-size: 0.95rem;">Sign out</button>
+          </form>
+        </div>
       {% else %}
-        <a href="{{ url_for('admin_login') }}">Admin</a>
+        <a href="{{ url_for('admin_login') }}" style="color: var(--muted); font-weight: 600; text-decoration: none; font-size: 0.95rem;">Staff Login</a>
       {% endif %}
     </nav>
   </div>
 </header>
 
-<main id="main" class="container main">
+<main id="main" class="container main" style="padding-top: 24px; padding-bottom: 48px; min-height: 70vh;">
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-      <div class="flashes" role="status" aria-live="polite">
+      <div class="flashes" role="status" aria-live="polite" style="margin-bottom: 24px;">
         {% for category, msg in messages %}
-          <div class="flash flash-{{ category }}">{{ msg }}</div>
+          <div class="flash flash-{{ category }}" style="padding: 12px 16px; border-radius: 8px; font-weight: 500; border: 1px solid transparent; 
+            {% if category == 'success' %} background: #dcfce7; color: #166534; border-color: #bbf7d0; 
+            {% elif category == 'danger' %} background: #fee2e2; color: #991b1b; border-color: #fecaca;
+            {% else %} background: #fef3c7; color: #92400e; border-color: #fde68a; {% endif %}">
+            {{ msg }}
+          </div>
         {% endfor %}
       </div>
     {% endif %}
@@ -50,10 +81,16 @@
   {% block content %}{% endblock %}
 </main>
 
-<footer class="site-footer">
-  <div class="container">
-    <p>ClinicPulse Alpha · Sample data — unverified. Not medical advice.</p>
-    <p><a href="{{ url_for('about') }}">About &amp; disclaimer</a></p>
+<footer class="site-footer" style="background: var(--navy); color: #cbd5e1; padding: 32px 0; margin-top: auto; text-align: center;">
+  <div class="container" style="display: flex; flex-direction: column; gap: 8px; align-items: center;">
+    <div style="font-weight: 600; color: #fff; font-size: 1.1rem; margin-bottom: 4px;">ClinicPulse Alpha</div>
+    <p style="margin: 0; font-size: 0.9rem;">Sample data — unverified. Not medical advice.</p>
+    <p style="margin: 0; font-size: 0.9rem;">
+      <a href="{{ url_for('about') }}" style="color: #fff; text-decoration: underline;">About &amp; Disclaimer</a>
+    </p>
+    <p style="margin: 8px 0 0 0; font-size: 0.8rem; color: #94a3b8;">
+      &copy; 2024 ClinicPulse. Built for Sekhukhune District.
+    </p>
   </div>
 </footer>
 
