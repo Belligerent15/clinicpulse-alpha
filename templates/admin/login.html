@@ -2,22 +2,37 @@
 {% block title %}Admin sign in — ClinicPulse{% endblock %}
 
 {% block content %}
-<section class="page-head">
-  <h1>Admin sign in</h1>
-  <p class="muted">Staff only.</p>
-</section>
+<div class="login-container">
+  <section class="page-head" style="text-align: center; margin-bottom: 24px;">
+    <h1 style="margin: 0 0 4px 0;">Admin sign in</h1>
+    <p class="muted" style="margin: 0;">Staff only.</p>
+  </section>
 
-<form method="post" class="form-card narrow">
-  <label>
-    <span class="label">Username</span>
-    <input type="text" name="username" autocomplete="username" required>
-  </label>
-  <label>
-    <span class="label">Password</span>
-    <input type="password" name="password" autocomplete="current-password" required>
-  </label>
-  <div class="form-actions">
-    <button type="submit" class="btn btn-primary">Sign in</button>
+  <form method="post" class="form-card" style="margin: 0 auto; max-width: 400px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+    <label>
+      <span class="label">Username</span>
+      <input type="text" name="username" autocomplete="username" placeholder="Enter username" required>
+    </label>
+    <label>
+      <span class="label">Password</span>
+      <input type="password" name="password" autocomplete="current-password" placeholder="Enter password" required>
+    </label>
+    
+    <div class="form-actions" style="margin-top: 8px;">
+      <button type="submit" class="btn btn-primary" style="width: 100%;">Sign in</button>
+    </div>
+  </form>
+  
+  <div style="text-align: center; margin-top: 24px;">
+    <a href="{{ url_for('index') }}" class="btn btn-link" style="font-size: 0.95rem;">&larr; Back to Home</a>
   </div>
-</form>
+</div>
+
+<style>
+  /* Simple local style to ensure perfect centering on all devices */
+  .login-container {
+    padding: 40px 16px;
+    max-width: 100%;
+  }
+</style>
 {% endblock %}
