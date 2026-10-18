@@ -4,68 +4,195 @@
 {% block head_extra %}
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <style>
+    /* Premium styling for the Live Update section */
+    .live-update-box {
+      background: #ffffff;
+      border: 2px solid var(--primary);
+      border-radius: 12px;
+      padding: 24px;
+      margin-top: 32px;
+      box-shadow: 0 4px 12px rgba(14, 124, 123, 0.1);
+    }
+    .live-indicator {
+      display: inline-flex;
+      align-items: center;
+      background: #e0f2f1;
+      padding: 6px 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 0.9rem;
+    }
+    .pulse-dot {
+      width: 10px;
+      height: 10px;
+      background: #16A34A;
+      border-radius: 50%;
+      margin-right: 8px;
+      animation: pulse-anim 2s infinite;
+    }
+    @keyframes pulse-anim {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(22, 163, 74, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+    }
+    .captcha-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 16px 0;
+      background: #f8fafc;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .captcha-math {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--navy);
+      letter-spacing: 1px;
+    }
+    .update-select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 1rem;
+      background: #fff;
+    }
+  </style>
 {% endblock %}
 
 {% block content %}
-<nav class="crumbs" aria-label="Breadcrumb">
-  <a href="{{ url_for('index') }}">Home</a> &rsaquo;
-  <a href="{{ url_for('clinics_list') }}">Clinics</a> &rsaquo;
-  <span>{{ clinic.name }}</span>
+<nav class="crumbs" aria-label="Breadcrumb" style="margin-bottom: 20px; font-size: 0.9rem;">
+  <a href="{{ url_for('index') }}" style="color: var(--muted); text-decoration: none;">Home</a> &rsaquo;
+  <a href="{{ url_for('clinics_list') }}" style="color: var(--muted); text-decoration: none;">Clinics</a> &rsaquo;
+  <span style="color: var(--navy); font-weight: 600;">{{ clinic.name }}</span>
 </nav>
 
 <article class="clinic-detail">
-  <header class="clinic-head">
-    <h1>{{ clinic.name }}</h1>
-    <p class="muted">{{ clinic.village }}{% if clinic.town and clinic.town != clinic.village %}, {{ clinic.town }}{% endif %} · {{ clinic.district }}, {{ clinic.province }}</p>
+  <header class="clinic-head" style="margin-bottom: 24px;">
+    <h1 style="margin: 0 0 8px 0; font-size: 2rem; color: var(--navy);">{{ clinic.name }}</h1>
+    <p class="muted" style="margin: 0 0 16px 0; font-size: 1.05rem;">
+      {{ clinic.village }}{% if clinic.town and clinic.town != clinic.village %}, {{ clinic.town }}{% endif %} · {{ clinic.district }}, {{ clinic.province }}
+    </p>
 
-    <ul class="status-list" aria-label="Current status">
-      <li><span class="pill large {{ clinic.status|status_class }}">{{ clinic.status or 'Unknown' }}</span></li>
-      <li><span class="pill large {{ clinic.queue_status|status_class }}">Queue: {{ clinic.queue_status or '—' }}</span></li>
-      <li><span class="pill large {{ clinic.medication_status|status_class }}">Meds: {{ clinic.medication_status or '—' }}</span></li>
-    </ul>
-    {% if clinic.last_updated %}
-      <p class="muted small">Last updated: {{ clinic.last_updated }} UTC</p>
+    <!-- Live Status Indicator -->
+    {% if clinic.time_ago %}
+    <div class="live-indicator">
+      <div class="pulse-dot"></div>
+      <span style="color: var(--navy); font-weight: 600;">Live Community Status:</span>
+      <span style="color: var(--muted); margin-left: 6px;">Updated {{ clinic.time_ago }}</span>
+    </div>
     {% endif %}
+
+    <ul class="status-list" aria-label="Current status" style="display: flex; gap: 12px; flex-wrap: wrap; padding: 0; list-style: none;">
+      <li><span class="pill large {{ clinic.status|status_class }}" style="font-size: 1rem; padding: 8px 16px;">{{ clinic.status or 'Unknown' }}</span></li>
+      <li><span class="pill large {{ clinic.queue_status|status_class }}" style="font-size: 1rem; padding: 8px 16px;">Queue: {{ clinic.queue_status or '—' }}</span></li>
+      <li><span class="pill large {{ clinic.medication_status|status_class }}" style="font-size: 1rem; padding: 8px 16px;">Meds: {{ clinic.medication_status or '—' }}</span></li>
+    </ul>
   </header>
 
-  <div class="detail-grid">
+  <div class="detail-grid" style="display: grid; gap: 32px; grid-template-columns: 1fr; margin-bottom: 32px;">
     <section class="detail-info">
-      <h2>Information</h2>
-      <dl>
-        <dt>Address</dt><dd>{{ clinic.address or '—' }}</dd>
-        <dt>Phone</dt>
-        <dd>{% if clinic.phone %}<a href="tel:{{ clinic.phone }}">{{ clinic.phone }}</a>{% else %}—{% endif %}</dd>
-        <dt>Operating hours</dt><dd>{{ clinic.operating_hours or '—' }}</dd>
-        <dt>Services</dt>
-        <dd>
+      <h2 style="color: var(--navy); font-size: 1.2rem; margin-bottom: 16px;">Clinic Information</h2>
+      <dl style="display: grid; grid-template-columns: 120px 1fr; gap: 12px;">
+        <dt style="color: var(--muted); font-weight: 600;">Address</dt>
+        <dd style="margin: 0;">{{ clinic.address or '—' }}</dd>
+        
+        <dt style="color: var(--muted); font-weight: 600;">Phone</dt>
+        <dd style="margin: 0;">{% if clinic.phone %}<a href="tel:{{ clinic.phone }}" style="color: var(--primary); font-weight: 600;">{{ clinic.phone }}</a>{% else %}—{% endif %}</dd>
+        
+        <dt style="color: var(--muted); font-weight: 600;">Hours</dt>
+        <dd style="margin: 0;">{{ clinic.operating_hours or '—' }}</dd>
+        
+        <dt style="color: var(--muted); font-weight: 600;">Services</dt>
+        <dd style="margin: 0;">
           {% if clinic.services_list %}
-            <ul class="chips">
-              {% for s in clinic.services_list %}<li class="chip">{{ s }}</li>{% endfor %}
+            <ul class="chips" style="list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 6px;">
+              {% for s in clinic.services_list %}<li class="chip" style="background: #e0f2f1; color: var(--primary); padding: 4px 10px; border-radius: 999px; font-size: 0.85rem; font-weight: 600;">{{ s }}</li>{% endfor %}
             </ul>
           {% else %}—{% endif %}
         </dd>
       </dl>
 
-      <div class="action-row">
-        <a class="btn btn-primary" href="{{ clinic.directions_url }}" target="_blank" rel="noopener">Get directions</a>
-        <a class="btn btn-ghost" href="{{ clinic.whatsapp_url }}" target="_blank" rel="noopener">Share on WhatsApp</a>
-        <a class="btn btn-link" href="{{ url_for('report', clinic_id=clinic.id) }}">Report incorrect information</a>
+      <div class="action-row" style="margin-top: 24px; display: flex; gap: 12px; flex-wrap: wrap;">
+        <a class="btn btn-primary" href="{{ clinic.directions_url }}" target="_blank" rel="noopener" style="flex: 1; min-width: 150px;">Get directions</a>
+        <a class="btn btn-ghost" href="{{ clinic.whatsapp_url }}" target="_blank" rel="noopener" style="flex: 1; min-width: 150px; background: #f8fafc;">Share on WhatsApp</a>
       </div>
     </section>
 
     <section class="detail-map">
-      <h2>Location</h2>
+      <h2 style="color: var(--navy); font-size: 1.2rem; margin-bottom: 16px;">Location</h2>
       {% if clinic.latitude and clinic.longitude %}
         <div id="clinic-map" class="map"
              data-lat="{{ clinic.latitude }}"
              data-lng="{{ clinic.longitude }}"
              data-name="{{ clinic.name }}"
-             role="application" aria-label="Clinic location map"></div>
+             role="application" aria-label="Clinic location map"
+             style="height: 300px; border-radius: 12px; border: 1px solid var(--border);"></div>
       {% else %}
-        <p class="muted">No map location available.</p>
+        <p class="muted" style="padding: 24px; background: #f8fafc; border-radius: 12px; text-align: center;">No map location available.</p>
       {% endif %}
     </section>
   </div>
+
+  <!-- LIVE CROWDSOURCE UPDATE FORM -->
+  <section class="live-update-box">
+    <h3 style="margin-top: 0; color: var(--primary); font-size: 1.3rem; display: flex; align-items: center; gap: 8px;">
+      <span>📍</span> Are you at the clinic right now?
+    </h3>
+    <p class="muted" style="font-size: 0.95rem; margin-bottom: 20px;">
+      Help others by updating the live status. It takes 5 seconds and helps the whole community.
+    </p>
+    
+    <form method="post" action="{{ url_for('public_update_clinic', clinic_id=clinic.id) }}">
+      <div style="display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+        <label>
+          <span class="label" style="font-weight: 600; color: var(--navy); display: block; margin-bottom: 6px;">Is it Open?</span>
+          <select name="status" class="update-select">
+            <option value="Open" {% if clinic.status == 'Open' %}selected{% endif %}>Yes (Open)</option>
+            <option value="Closed" {% if clinic.status == 'Closed' %}selected{% endif %}>No (Closed)</option>
+            <option value="Limited" {% if clinic.status == 'Limited' %}selected{% endif %}>Limited Services</option>
+          </select>
+        </label>
+        <label>
+          <span class="label" style="font-weight: 600; color: var(--navy); display: block; margin-bottom: 6px;">Queue Length</span>
+          <select name="queue_status" class="update-select">
+            <option value="Short" {% if clinic.queue_status == 'Short' %}selected{% endif %}>Short (Fast)</option>
+            <option value="Moderate" {% if clinic.queue_status == 'Moderate' %}selected{% endif %}>Moderate (Normal)</option>
+            <option value="Long" {% if clinic.queue_status == 'Long' %}selected{% endif %}>Long (Very busy)</option>
+          </select>
+        </label>
+        <label>
+          <span class="label" style="font-weight: 600; color: var(--navy); display: block; margin-bottom: 6px;">Medicine Available?</span>
+          <select name="medication_status" class="update-select">
+            <option value="Available" {% if clinic.medication_status == 'Available' %}selected{% endif %}>Yes (In Stock)</option>
+            <option value="Limited" {% if clinic.medication_status == 'Limited' %}selected{% endif %}>Limited Stock</option>
+            <option value="Unavailable" {% if clinic.medication_status == 'Unavailable' %}selected{% endif %}>Out of Stock</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="captcha-row">
+        <span class="label" style="margin: 0; font-weight: 600;">Security Check (Anti-Spam):</span>
+        <span class="captcha-math">{{ num1 }} + {{ num2 }} =</span>
+        <input type="number" name="captcha" required placeholder="?" style="width: 80px; padding: 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 1rem;">
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width: 100%; padding: 14px; font-size: 1.05rem; margin-top: 8px;">
+        Submit Live Update for Everyone
+      </button>
+    </form>
+  </section>
+  
+  <div style="text-align: center; margin-top: 24px;">
+    <a href="{{ url_for('report', clinic_id=clinic.id) }}" class="btn btn-link" style="color: var(--muted); text-decoration: underline;">
+      Report incorrect permanent information (e.g. wrong phone number)
+    </a>
+  </div>
+
 </article>
 {% endblock %}
 
